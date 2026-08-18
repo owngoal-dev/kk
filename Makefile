@@ -52,6 +52,11 @@ endif
 	bump-upstream check source build deb deb-roothide deb-rootless debs \
 	checksums install clean
 
+# Under `make -j` the two flavors would race on one scratch directory, and
+# `checksums` would run before either package existed. The long pole is SwiftPM,
+# which parallelizes internally anyway, so there is nothing to win here.
+.NOTPARALLEL:
+
 all: debs
 
 help:
