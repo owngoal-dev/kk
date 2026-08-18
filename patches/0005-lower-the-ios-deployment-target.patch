@@ -1,0 +1,19 @@
+diff --git a/Package.swift b/Package.swift
+index fb087d6..ce61e0d 100644
+--- a/Package.swift
++++ b/Package.swift
+@@ -5,7 +5,13 @@ let package = Package(
+     name: "kwwk",
+     platforms: [
+         .macOS(.v14),
+-        .iOS(.v17),
++        // Lowered from .v17. SwiftPM raises every target to the package's
++        // deployment target, so a `--triple arm64-apple-ios15.0` on the command
++        // line is silently ignored while this says 17 — and the floor is what
++        // decides which jailbroken devices can install the result. Nothing in
++        // the tree needs an iOS 17 API; 15.0 is where Swift Concurrency became
++        // part of the OS, so no back-deployment dylibs have to ship alongside.
++        .iOS(.v15),
+         .macCatalyst(.v17),
+     ],
+     products: [

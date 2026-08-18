@@ -1,0 +1,4 @@
+.DS_Store
+# Scripts/prepare-source.sh puts the upstream checkout, the SwiftPM scratch
+# directory, and the finished packages under here. Nothing in it is source.
+/build/

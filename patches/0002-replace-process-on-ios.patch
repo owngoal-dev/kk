@@ -1,0 +1,127 @@
+diff --git a/Sources/KWWKCli/Login.swift b/Sources/KWWKCli/Login.swift
+index 86b0d7a..0d77167 100644
+--- a/Sources/KWWKCli/Login.swift
++++ b/Sources/KWWKCli/Login.swift
+@@ -1,5 +1,8 @@
+ import Foundation
+ import KWWKAI
++#if canImport(Darwin)
++import Darwin
++#endif
+ 
+ /// Flow a picked `/login` entry runs. OAuth entries dispatch to the
+ /// browser-based PKCE flow (TUI suspended for the handoff); `apiKey` entries
+@@ -244,6 +247,20 @@ func terminalLoginCallbacks() -> OAuthLogin.Callbacks {
+ /// `xdg-open`, else falls back to stderr so the user can click manually.
+ enum Browser {
+     static func open(_ url: URL) {
++        #if os(iOS)
++        // iOS has neither `Process` nor `open(1)`. uikittools' `uiopen` hands
++        // the URL to SpringBoard, which is the only route from a CLI to a
++        // browser here. Probe for it rather than naming one bootstrap's path:
++        // a rootless install answers at /var/jb, and roothide's programs
++        // resolve unprefixed paths inside the jbroot they picked this boot.
++        for opener in ["/var/jb/usr/bin/uiopen", "/usr/bin/uiopen"]
++        where FileManager.default.isExecutableFile(atPath: opener) {
++            if spawnAndWait(opener, [url.absoluteString]) { return }
++        }
++        FileHandle.standardError.write(Data(
++            "please open manually:\n  \(url.absoluteString)\n".utf8
++        ))
++        #else
+         #if os(macOS)
+         let opener = "/usr/bin/open"
+         #else
+@@ -260,9 +277,27 @@ enum Browser {
+                 "please open manually:\n  \(url.absoluteString)\n".utf8
+             ))
+         }
++        #endif
+     }
+ }
+ 
++#if os(iOS)
++/// `posix_spawn` + reap, standing in for the `Process` that iOS Foundation
++/// does not ship. Reports whether the child both spawned and exited zero, so
++/// a missing or failing opener falls through to the manual instructions.
++private func spawnAndWait(_ path: String, _ arguments: [String]) -> Bool {
++    var argv: [UnsafeMutablePointer<CChar>?] = ([path] + arguments).map { strdup($0) }
++    argv.append(nil)
++    defer { for argument in argv { free(argument) } }
++
++    var pid: pid_t = 0
++    guard posix_spawn(&pid, path, nil, nil, &argv, environ) == 0 else { return false }
++    var status: Int32 = 0
++    while waitpid(pid, &status, 0) == -1, errno == EINTR {}
++    return status == 0
++}
++#endif
++
+ // MARK: - OAuth flow (TUI suspended)
+ 
+ /// Browser-based OAuth login for `providerId`. Runs with the coding TUI
+diff --git a/Sources/KWWKCli/WelcomeScreen.swift b/Sources/KWWKCli/WelcomeScreen.swift
+index 8a5b28c..1e8d328 100644
+--- a/Sources/KWWKCli/WelcomeScreen.swift
++++ b/Sources/KWWKCli/WelcomeScreen.swift
+@@ -166,6 +166,54 @@ enum WelcomeScreen {
+ /// Best-effort current git branch for the welcome card + prompt breadcrumb.
+ /// Returns nil outside a repo or if `git` is unavailable.
+ enum GitInfo {
++    #if os(iOS)
++    /// iOS Foundation has no `Process`, so read the ref the way git writes
++    /// it. Walks up from `cwd` for a `.git`; a linked worktree or submodule
++    /// stores a `gitdir:` pointer in a file where the directory would be.
++    /// Returns nil on a detached HEAD, matching the `--abbrev-ref` path.
++    static func currentBranch(cwd: String) -> String? {
++        let fileManager = FileManager.default
++        var directory = URL(fileURLWithPath: cwd).standardizedFileURL
++
++        while true {
++            let dotGit = directory.appendingPathComponent(".git")
++            var isDirectory: ObjCBool = false
++            if fileManager.fileExists(atPath: dotGit.path, isDirectory: &isDirectory) {
++                guard let gitDirectory = resolveGitDirectory(dotGit, isDirectory: isDirectory.boolValue),
++                      let head = try? String(
++                          contentsOf: gitDirectory.appendingPathComponent("HEAD"),
++                          encoding: .utf8
++                      )
++                else { return nil }
++
++                let reference = head.trimmingCharacters(in: .whitespacesAndNewlines)
++                let prefix = "ref: refs/heads/"
++                guard reference.hasPrefix(prefix) else { return nil }
++                let branch = String(reference.dropFirst(prefix.count))
++                return branch.isEmpty ? nil : branch
++            }
++
++            let parent = directory.deletingLastPathComponent().standardizedFileURL
++            if parent.path == directory.path { return nil }
++            directory = parent
++        }
++    }
++
++    private static func resolveGitDirectory(_ dotGit: URL, isDirectory: Bool) -> URL? {
++        if isDirectory { return dotGit }
++        guard let pointer = try? String(contentsOf: dotGit, encoding: .utf8) else { return nil }
++        let prefix = "gitdir:"
++        guard let line = pointer.split(separator: "\n").first(where: { $0.hasPrefix(prefix) }) else {
++            return nil
++        }
++        let path = line.dropFirst(prefix.count).trimmingCharacters(in: .whitespaces)
++        guard !path.isEmpty else { return nil }
++        return URL(
++            fileURLWithPath: path,
++            relativeTo: dotGit.deletingLastPathComponent()
++        ).standardizedFileURL
++    }
++    #else
+     static func currentBranch(cwd: String) -> String? {
+         let proc = Process()
+         proc.currentDirectoryURL = URL(fileURLWithPath: cwd)
+@@ -187,4 +235,5 @@ enum GitInfo {
+             return nil
+         }
+     }
++    #endif
+ }

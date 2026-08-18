@@ -1,0 +1,108 @@
+# Tag vX.Y.Z → build the roothide and rootless packages and attach both, plus
+# their digests, to a GitHub Release.
+#
+# The release is what OwnGoalPackages scans. It looks for the newest release
+# that is neither a draft nor a prerelease and whose tag carries no
+# alpha/beta/rc/preview/dev/nightly marker, then picks the asset whose name ends
+# in the architecture it wants and verifies it against SHA256SUMS. So: publish
+# straight away (no draft), keep the vX.Y.Z tag plain, and never rename the
+# assets — `make debs` already produces the names and the digest list that
+# contract needs.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]*.[0-9]*.[0-9]*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deb:
+    runs-on: macos-26
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out kk
+        uses: actions/checkout@v4
+
+      # The cross-compile needs a toolchain new enough to ship the iOS Swift
+      # back-deployment shims under usr/lib/swift-*/iphoneos; build-ios.sh fails
+      # with the directory it looked in if one is missing.
+      - name: Select newest Xcode
+        run: |
+          latest="$(ls -d /Applications/Xcode*.app | sort -V | tail -n1)"
+          sudo xcode-select -s "$latest/Contents/Developer"
+          xcodebuild -version
+          swift --version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Install packaging tools
+        run: |
+          brew install ldid dpkg
+          ldid -h 2>&1 | head -n1 || true
+          dpkg-deb --version | head -n1
+
+      # apply-version.sh strips the leading "v" and rejects anything that is not
+      # X.Y.Z, so a malformed tag fails here rather than shipping a package
+      # whose version apt cannot order.
+      - name: Set version from tag
+        if: github.ref_type == 'tag'
+        run: make set-version VERSION="${GITHUB_REF_NAME}"
+
+      - name: Validate scripts, config, and patch set
+        run: make check
+
+      # Fetches kwwk at the pinned ref and applies patches/. A patch that no
+      # longer applies stops here with the upstream commit it failed against
+      # rather than turning into Swift compiler errors later.
+      - name: Prepare patched source
+        run: make source
+
+      # Both packages come out of one arm64 build; the second flavor finds the
+      # build already done. `debs` also writes SHA256SUMS.
+      - name: Build packages
+        run: make debs
+
+      - name: Summarize
+        run: |
+          cd build/Packages
+          {
+            echo "### kk $(make -C "$GITHUB_WORKSPACE" --no-print-directory print-version)"
+            echo
+            echo "upstream: \`$(make -C "$GITHUB_WORKSPACE" --no-print-directory print-upstream)\`"
+            echo
+            echo '```'
+            cat SHA256SUMS
+            echo '```'
+            echo
+            dpkg-deb -I ./*iphoneos-arm64.deb | sed 's/^/    /'
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kk-debs
+          path: |
+            build/Packages/*.deb
+            build/Packages/SHA256SUMS
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "kk ${GITHUB_REF_NAME}" \
+            --generate-notes \
+            build/Packages/*.deb build/Packages/SHA256SUMS \
+          || gh release upload "${GITHUB_REF_NAME}" \
+            build/Packages/*.deb build/Packages/SHA256SUMS --clobber

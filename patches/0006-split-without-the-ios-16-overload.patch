@@ -1,0 +1,18 @@
+diff --git a/Sources/KWWKAI/Cursor/CursorAgentMessages.swift b/Sources/KWWKAI/Cursor/CursorAgentMessages.swift
+index 5c48ea5..ecdc3e8 100644
+--- a/Sources/KWWKAI/Cursor/CursorAgentMessages.swift
++++ b/Sources/KWWKAI/Cursor/CursorAgentMessages.swift
+@@ -866,7 +866,12 @@ enum CursorProto {
+         root.stringField(1, rootPath)
+         var fileCount = 0
+         for entry in entries {
+-            let name = String(entry.split(separator: " (").first ?? Substring(entry))
++            // `split` with a multi-character separator is the Collection
++            // overload, which is iOS 16+. components(separatedBy:) has been
++            // there since iOS 2 and gives the same answer: skipping the empty
++            // leading component is what omittingEmptySubsequences does, and an
++            // entry that is nothing but separators falls back to itself.
++            let name = entry.components(separatedBy: " (").first { !$0.isEmpty } ?? entry
+             if name.hasSuffix("/") {
+                 root.messageField(2) { dir in
+                     let dirName = String(name.dropLast())

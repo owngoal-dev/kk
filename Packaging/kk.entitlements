@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  kk is a command-line agent: it is launched from a shell, it spawns shells of
+  its own for the Bash tool, and it reads and writes the tree it was pointed at.
+  Three entitlements are what make that work on a jailbroken device, and each is
+  here for a reason worth keeping:
+
+  platform-application
+      Marks the binary as a platform binary. An ad-hoc signed executable
+      without it is denied the process-spawning and file access below.
+
+  com.apple.private.security.no-sandbox
+      The agent's whole job is touching files outside any container. Without
+      it the kernel denies those reads and writes.
+
+  com.apple.private.security.container-required = false
+      Keeps kk out of a data container, so NSHomeDirectory() resolves to the
+      real home of whoever ran it. This is what puts the OAuth store at
+      ~/.kwwk/oauth.json (i.e. /var/mobile/.kwwk) instead of somewhere inside
+      a per-binary container that the next install would orphan. Absence is
+      not equivalent: the switch has to be explicitly false.
+-->
+<plist version="1.0">
+<dict>
+	<key>platform-application</key>
+	<true/>
+	<key>com.apple.private.security.no-sandbox</key>
+	<true/>
+	<key>com.apple.private.security.container-required</key>
+	<false/>
+</dict>
+</plist>

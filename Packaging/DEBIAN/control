@@ -1,0 +1,23 @@
+Package: @PACKAGE_ID@
+Name: kk
+Version: @VERSION@
+Architecture: @ARCHITECTURE@
+Description: Swift-native coding agent for jailbroken iOS
+ kwwk's interactive coding CLI, built for iOS and installed as `kk`. Drives an
+ existing Anthropic, ChatGPT (Codex), Copilot, Cursor, Kimi, Grok, Z.AI, or
+ OpenRouter subscription, or a raw API key for any OpenAI-compatible endpoint.
+ Run `kk` in a terminal on device and `/login` to sign in. It is also installed
+ as `kwwk`, the name it calls itself by in its own help.
+ .
+ The agent's Bash, Read, Write, Edit, Grep, Find, and LS tools operate on the
+ real filesystem, so it needs a bootstrap that provides a shell.
+ .
+ Packaged for both roothide and rootless bootstraps from one arm64 build; the
+ architecture field says which layout this package is, not which CPU it runs
+ on. Upstream is @UPSTREAM@.
+Maintainer: OwnGoal Studio <not-gonna-reply@owngoal.dev>
+Author: EYHN <https://github.com/EYHN/kwwk>
+Section: Utilities
+Priority: optional
+Depends: firmware (>= @MIN_IOS@), uikittools
+Installed-Size: @INSTALLED_SIZE@

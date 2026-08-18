@@ -1,0 +1,20 @@
+diff --git a/Sources/KWWKCli/StdoutTerminal.swift b/Sources/KWWKCli/StdoutTerminal.swift
+index e31e599..1bba5ba 100644
+--- a/Sources/KWWKCli/StdoutTerminal.swift
++++ b/Sources/KWWKCli/StdoutTerminal.swift
+@@ -1,4 +1,4 @@
+-#if os(macOS) || os(Linux)
++#if os(macOS) || os(Linux) || os(iOS)
+ import Foundation
+ #if canImport(Darwin)
+ import Darwin
+diff --git a/Sources/KWWKCli/TUIRunner.swift b/Sources/KWWKCli/TUIRunner.swift
+index 33367c3..e754d38 100644
+--- a/Sources/KWWKCli/TUIRunner.swift
++++ b/Sources/KWWKCli/TUIRunner.swift
+@@ -1,4 +1,4 @@
+-#if os(macOS) || os(Linux)
++#if os(macOS) || os(Linux) || os(iOS)
+ import Foundation
+ #if canImport(Darwin)
+ import Darwin
