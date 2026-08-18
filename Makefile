@@ -112,10 +112,12 @@ check:
 		test -s "$$patch" || { echo "error: $$patch is empty" >&2; exit 65; }; \
 	done
 	@echo "==> packaging inputs"
-	@for input in Packaging/DEBIAN/control Packaging/kk.entitlements Packaging/kk.launcher.sh; do \
+	@for input in Packaging/DEBIAN/control Packaging/kk.entitlements \
+		Packaging/kk.launcher.sh Packaging/release-notes.md; do \
 		test -f "$(ROOT_DIR)/$$input" || { echo "error: missing $$input" >&2; exit 66; }; \
 	done
 	@plutil -lint "$(ROOT_DIR)/Packaging/kk.entitlements"
+	@"$(ROOT_DIR)/Scripts/release-notes.sh" "v$(PACKAGE_VERSION)" >/dev/null
 	@echo "ok"
 
 source:

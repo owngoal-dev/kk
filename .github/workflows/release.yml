@@ -95,14 +95,20 @@ jobs:
             build/Packages/SHA256SUMS
           if-no-files-found: error
 
+      # Notes come from Packaging/release-notes.md rather than --generate-notes,
+      # which would leave a bare changelog link on the page where someone has to
+      # choose between two .debs whose architectures name a bootstrap layout and
+      # not a CPU. Published straight away: OwnGoalPackages skips drafts.
       - name: Create GitHub Release
         if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          ./Scripts/release-notes.sh "${GITHUB_REF_NAME}" >/tmp/release-notes.md
           gh release create "${GITHUB_REF_NAME}" \
             --title "kk ${GITHUB_REF_NAME}" \
-            --generate-notes \
+            --notes-file /tmp/release-notes.md \
             build/Packages/*.deb build/Packages/SHA256SUMS \
-          || gh release upload "${GITHUB_REF_NAME}" \
-            build/Packages/*.deb build/Packages/SHA256SUMS --clobber
+          || { gh release edit "${GITHUB_REF_NAME}" --notes-file /tmp/release-notes.md &&
+               gh release upload "${GITHUB_REF_NAME}" \
+                 build/Packages/*.deb build/Packages/SHA256SUMS --clobber; }
