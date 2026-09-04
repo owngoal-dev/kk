@@ -135,7 +135,7 @@ the build is not merely well-formed.
 
 ## The OwnGoalPackages contract
 
-[OwnGoalPackages](https://github.com/OwnGoalStudio/OwnGoalPackages) builds the
+[OwnGoalPackages](https://github.com/owngoal-dev/OwnGoalPackages) builds the
 apt repository by scanning this repo's releases, so the release shape is an
 interface:
 

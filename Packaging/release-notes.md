@@ -11,7 +11,7 @@ The architecture field names the **bootstrap layout, not the CPU**. Both package
 
 Not sure? Ask the device: `dpkg --print-architecture`.
 
-Requires **iOS @MIN_IOS_MAJOR@ or later** and a bootstrap that provides a shell. Or just add the [OwnGoal Studio repository](https://github.com/OwnGoalStudio/OwnGoalPackages) and let your package manager pick.
+Requires **iOS @MIN_IOS_MAJOR@ or later** and a bootstrap that provides a shell. Or just add the [OwnGoal Studio repository](https://github.com/owngoal-dev/OwnGoalPackages) and let your package manager pick.
 
 ## Usage
 
@@ -21,8 +21,8 @@ It is installed as `kwwk` too, which is the name it uses in its own help text.
 
 ## About this build
 
-Upstream [`EYHN/kwwk@@UPSTREAM_SHORT@`](https://github.com/EYHN/kwwk/commit/@UPSTREAM_REF@), plus the patches that port it to iOS — the TUI is gated to macOS/Linux upstream, iOS Foundation ships no `Process`, a rootless bootstrap has no `/bin/sh` at all, and the deployment target has to come down to reach the jailbreaks' floor. See [`patches/`](https://github.com/OwnGoalStudio/kk/tree/@TAG@/patches).
+Upstream [`EYHN/kwwk@@UPSTREAM_SHORT@`](https://github.com/EYHN/kwwk/commit/@UPSTREAM_REF@), plus the patches that port it to iOS — the TUI is gated to macOS/Linux upstream, iOS Foundation ships no `Process`, a rootless bootstrap has no `/bin/sh` at all, and the deployment target has to come down to reach the jailbreaks' floor. See [`patches/`](https://github.com/owngoal-dev/kk/tree/@TAG@/patches).
 
 Verify your download against `SHA256SUMS`.
 
-**Full changelog**: https://github.com/OwnGoalStudio/kk/commits/@TAG@
+**Full changelog**: https://github.com/owngoal-dev/kk/commits/@TAG@
