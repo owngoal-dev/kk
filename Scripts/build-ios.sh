@@ -96,6 +96,12 @@ bin_dir="$(swift build "${build_flags[@]}" --show-bin-path 2>/dev/null)"
 executable="$bin_dir/$KWWK_PRODUCT"
 [[ -f "$executable" ]] || { echo "error: build produced no $executable" >&2; exit 65; }
 
+# SwiftPM leaves the absolute output paths of every Swift and Clang object in
+# the linked debug data. Prefix maps normalize source paths, but do not rewrite
+# those object-file breadcrumbs. Strip debug sections before signing so a CI
+# checkout path cannot become part of the published executable.
+/usr/bin/strip -S "$executable"
+
 # A macOS host cross-compiling to iOS fails quietly in exactly one way: the
 # flags get dropped and out comes a perfectly good macOS binary that no device
 # will load. Read the platform back off the Mach-O rather than trusting flags.
@@ -119,7 +125,7 @@ architectures="$(lipo -archs "$executable")"
 }
 
 for private_path in "$repository_root" "$src_dir" "$scratch_dir"; do
-    if strings "$executable" | grep -F "$private_path" >/dev/null; then
+    if LC_ALL=C grep -aF "$private_path" "$executable" >/dev/null; then
         echo "error: $executable embeds private build path: $private_path" >&2
         exit 65
     fi
