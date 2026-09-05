@@ -92,7 +92,6 @@ set-version:
 	@"$(VERSION_APPLIER)" "$(VERSION)"
 
 check:
-	@python3 "$(ROOT_DIR)/Scripts/check-launcher.py" "$(ROOT_DIR)/Packaging/kk.launcher.sh"
 	@echo "==> shell syntax"
 	@for script in "$(ROOT_DIR)"/Scripts/*.sh; do bash -n "$$script" || exit 1; done
 	@if command -v shellcheck >/dev/null; then \
@@ -114,7 +113,7 @@ check:
 	done
 	@echo "==> packaging inputs"
 	@for input in Packaging/DEBIAN/control Packaging/kk.entitlements \
-		Packaging/kk.launcher.sh Packaging/release-notes.md; do \
+		Packaging/kk.launcher.c Packaging/release-notes.md; do \
 		test -f "$(ROOT_DIR)/$$input" || { echo "error: missing $$input" >&2; exit 66; }; \
 	done
 	@plutil -lint "$(ROOT_DIR)/Packaging/kk.entitlements"

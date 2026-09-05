@@ -35,9 +35,9 @@ source "$repository_root/Configuration/upstream.env"
 package_id="${PACKAGE_ID:-wiki.qaq.kk}"
 control_template="$repository_root/Packaging/DEBIAN/control"
 entitlements="$repository_root/Packaging/kk.entitlements"
-launcher_template="$repository_root/Packaging/kk.launcher.sh"
+launcher_source="$repository_root/Packaging/kk.launcher.c"
 
-for input in "$control_template" "$entitlements" "$launcher_template"; do
+for input in "$control_template" "$entitlements" "$launcher_source"; do
     [[ -f "$input" ]] || { echo "error: missing packaging input: $input" >&2; exit 66; }
 done
 
@@ -57,7 +57,7 @@ iphoneos-arm64:/var/jb | iphoneos-arm64e:) ;;
 *) echo "error: architecture and install prefix name different bootstrap layouts" >&2; exit 64 ;;
 esac
 
-for tool in ldid dpkg-deb; do
+for tool in ldid dpkg-deb xcrun vtool; do
     command -v "$tool" >/dev/null || { echo "error: $tool is not installed" >&2; exit 69; }
 done
 
@@ -91,7 +91,10 @@ installed_launcher="$installed_root/usr/bin/$KK_PROGRAM"
 mkdir -p "$debian" "$(dirname "$installed_libexec")" "$(dirname "$installed_launcher")"
 
 /usr/bin/ditto "$payload" "$installed_libexec"
-sed -e "s|@PREFIX@|$install_prefix|g" "$launcher_template" >"$installed_launcher"
+sdk_path="$(xcrun --sdk iphoneos --show-sdk-path)"
+xcrun clang -target "arm64-apple-ios$KK_MIN_IOS" -isysroot "$sdk_path" -Os -fvisibility=hidden \
+    "-DOG_PROGRAM=\"$KK_PROGRAM\"" "-DOG_STATIC_PREFIX=\"$install_prefix\"" \
+    "$launcher_source" -Wl,-dead_strip -o "$installed_launcher"
 
 # The program still calls itself kwwk in its own help and error messages, and
 # renaming those would mean carrying a patch across every upstream edit to the
@@ -104,33 +107,23 @@ ln -s "$KK_PROGRAM" "$installed_root/usr/bin/$KWWK_PRODUCT"
 chmod 0755 "$installed_launcher" "$installed_libexec/$KK_PROGRAM"
 chmod -R a+rX "$installed_libexec"
 
-# The launcher is useless if its interpreter or its target is wrong, and both
-# are prefix-substituted, so assert what was actually written.
-head -n1 "$installed_launcher" | grep -qxF "#!$install_prefix/bin/sh" || {
-    echo "error: launcher interpreter is not $install_prefix/bin/sh" >&2
+vtool -show-build "$installed_launcher" 2>/dev/null | grep -qE '^ *platform (IOS|2)$' || {
+    echo "error: launcher is not an iOS binary" >&2
     exit 65
 }
-grep -qF "exec $install_prefix/usr/libexec/$KK_PROGRAM/$KK_PROGRAM \"\$@\"" "$installed_launcher" || {
-    echo "error: launcher does not exec the installed binary" >&2
-    exit 65
-}
-if grep -q '@PREFIX@' "$installed_launcher"; then
-    echo "error: launcher still holds an unsubstituted @PREFIX@" >&2
-    exit 65
-fi
 
 # Everything executable gets a signature. The shims carry no entitlements —
 # only the program does, and giving a library the program's privileges would be
 # handing them to anything that ever loads it.
-ldid -S"$entitlements" -Cadhoc "$installed_libexec/$KK_PROGRAM"
+for executable in "$installed_launcher" "$installed_libexec/$KK_PROGRAM"; do
+    ldid -S"$entitlements" -Cadhoc "$executable"
+done
 shopt -s nullglob
 for library in "$installed_libexec"/*.dylib; do
     ldid -S -Cadhoc "$library"
     chmod 0755 "$library"
 done
 shopt -u nullglob
-
-ldid -e "$installed_libexec/$KK_PROGRAM" >"$signed_entitlements"
 
 # ldid silently ships an unentitled binary when the plist it was handed is
 # malformed, and the symptom on device is a sandbox denial with no mention of
@@ -141,17 +134,18 @@ require_true() {
         exit 65
     }
 }
-require_true platform-application
-require_true com.apple.private.security.no-sandbox
-require_true com.apple.private.security.storage.AppBundles
-require_true com.apple.private.security.storage.AppDataContainers
-# Explicitly false, not absent: absence leaves kk in a data container, which
-# moves ~/.kwwk somewhere the next install orphans.
-[[ "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.private.security.container-required' \
-    "$signed_entitlements" 2>/dev/null || true)" == false ]] || {
-    echo "error: signed binary needs com.apple.private.security.container-required = false" >&2
-    exit 65
-}
+for executable in "$installed_launcher" "$installed_libexec/$KK_PROGRAM"; do
+    ldid -e "$executable" >"$signed_entitlements"
+    require_true platform-application
+    require_true com.apple.private.security.no-sandbox
+    require_true com.apple.private.security.storage.AppBundles
+    require_true com.apple.private.security.storage.AppDataContainers
+    [[ "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.private.security.container-required' \
+        "$signed_entitlements" 2>/dev/null || true)" == false ]] || {
+        echo "error: $executable needs com.apple.private.security.container-required = false" >&2
+        exit 65
+    }
+done
 
 installed_size="$(du -sk "$installed_root" | awk '{print $1}')"
 sed \
