@@ -92,6 +92,7 @@ set-version:
 	@"$(VERSION_APPLIER)" "$(VERSION)"
 
 check:
+	@python3 "$(ROOT_DIR)/Scripts/check-launcher.py" "$(ROOT_DIR)/Packaging/kk.launcher.sh"
 	@echo "==> shell syntax"
 	@for script in "$(ROOT_DIR)"/Scripts/*.sh; do bash -n "$$script" || exit 1; done
 	@if command -v shellcheck >/dev/null; then \
@@ -149,7 +150,7 @@ debs: deb-roothide deb-rootless checksums
 # The digest list is what OwnGoalPackages verifies a downloaded asset against,
 # so the names in it have to be the bare asset names the release publishes.
 checksums:
-	@cd "$(PKG_DIR)" && shasum -a 256 *.deb | tee SHA256SUMS
+	@cd "$(PKG_DIR)" && shasum -a 256 "$(PACKAGE_ID)_$(PACKAGE_VERSION)_iphoneos-arm64.deb" "$(PACKAGE_ID)_$(PACKAGE_VERSION)_iphoneos-arm64e.deb" | tee SHA256SUMS
 
 # Both flavors are built and the directory is handed over, so install-device.sh
 # can pick the one the attached device's own package manager reports.

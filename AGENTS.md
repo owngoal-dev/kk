@@ -23,8 +23,8 @@ through `Scripts/`, so CI and a local checkout execute the same code.
   roothide. Never build an arm64e slice for the "arm64e" package.
 - **Never hardcode a bootstrap path in patched source.** Probe for the file and
   take the first that exists — a rootless bootstrap answers under `/var/jb`,
-  while roothide's programs are vroot-linked so unprefixed paths already resolve
-  inside the jbroot it picked this boot. Prefix substitution belongs in
+  while this Swift payload is not vroot-linked and uses the physical bootstrap
+  PATH supplied by its launcher on RootHide. Prefix substitution belongs in
   *packaging* (`@PREFIX@`), not in Swift.
 - **Versions live in `Configuration/version.txt` only**, written by
   `make set-version VERSION=x.y.z`. `X.Y.Z` tracks upstream's
@@ -148,3 +148,21 @@ interface:
 
 `make debs` produces exactly those names and that digest list. Do not rename
 release assets.
+
+## RootHide signing and launcher checks
+
+RootHide's official Developer README requires both
+`com.apple.private.security.storage.AppBundles` and
+`com.apple.private.security.storage.AppDataContainers`, in addition to the
+platform and no-sandbox entitlements. Keep these in the executable signature
+and verify the extracted signature after packaging; a correct package layout
+alone does not establish access to RootHide's app-container installation path.
+Source: https://github.com/roothide/Developer/blob/main/README.md
+
+For payloads that do not use vroot, the launcher exports physical bootstrap
+PATH, SHELL and default CA/browser paths. Preserve explicit CA/browser settings
+and already physical or custom SHELL paths. Host launcher tests simulate the
+path boundary and verify argv/exit status; they do not prove that iOS loads the
+binary. Test the installed package from both zsh and fish on a RootHide device.
+Do not add vroot to a payload while retaining a launcher that exports physical
+paths: the filesystem view must remain consistent across the boundary.

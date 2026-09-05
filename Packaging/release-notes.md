@@ -26,3 +26,9 @@ Upstream [`EYHN/kwwk@@UPSTREAM_SHORT@`](https://github.com/EYHN/kwwk/commit/@UPS
 Verify your download against `SHA256SUMS`.
 
 **Full changelog**: https://github.com/owngoal-dev/kk/commits/@TAG@
+
+This packaging revision updates RootHide compatibility checks and signing.
+CLI startup passes bootstrap paths to payloads that use the physical filesystem;
+RootHide virtual-filesystem utilities retain their official import rewriting.
+RootHide device validation is pending; a successful build is not a claim that
+all interactive runtime paths have been tested.
