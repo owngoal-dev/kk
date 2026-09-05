@@ -11,7 +11,7 @@ index 86b0d7a..0d77167 100644
  
  /// Flow a picked `/login` entry runs. OAuth entries dispatch to the
  /// browser-based PKCE flow (TUI suspended for the handoff); `apiKey` entries
-@@ -244,6 +247,20 @@ func terminalLoginCallbacks() -> OAuthLogin.Callbacks {
+@@ -244,6 +247,22 @@ func terminalLoginCallbacks() -> OAuthLogin.Callbacks {
  /// `xdg-open`, else falls back to stderr so the user can click manually.
  enum Browser {
      static func open(_ url: URL) {
@@ -19,9 +19,11 @@ index 86b0d7a..0d77167 100644
 +        // iOS has neither `Process` nor `open(1)`. uikittools' `uiopen` hands
 +        // the URL to SpringBoard, which is the only route from a CLI to a
 +        // browser here. Probe for it rather than naming one bootstrap's path:
-+        // a rootless install answers at /var/jb, and roothide's programs
-+        // resolve unprefixed paths inside the jbroot they picked this boot.
-+        for opener in ["/var/jb/usr/bin/uiopen", "/usr/bin/uiopen"]
++        // the launcher puts physical RootHide paths on PATH for this process.
++        let pathOpeners = (ProcessInfo.processInfo.environment["PATH"] ?? "")
++            .split(separator: ":").filter { $0.hasPrefix("/") }.map { "\($0)/uiopen" }
++        let openers = pathOpeners + ["/var/jb/usr/bin/uiopen", "/usr/bin/uiopen"]
++        for opener in openers
 +        where FileManager.default.isExecutableFile(atPath: opener) {
 +            if spawnAndWait(opener, [url.absoluteString]) { return }
 +        }
@@ -32,7 +34,7 @@ index 86b0d7a..0d77167 100644
          #if os(macOS)
          let opener = "/usr/bin/open"
          #else
-@@ -260,9 +277,27 @@ enum Browser {
+@@ -260,9 +279,27 @@ enum Browser {
                  "please open manually:\n  \(url.absoluteString)\n".utf8
              ))
          }

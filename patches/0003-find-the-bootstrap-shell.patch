@@ -2,17 +2,18 @@ diff --git a/Sources/KWWKAgent/BashTool.swift b/Sources/KWWKAgent/BashTool.swift
 index 1f98483..fbb2e7b 100644
 --- a/Sources/KWWKAgent/BashTool.swift
 +++ b/Sources/KWWKAgent/BashTool.swift
-@@ -4,7 +4,18 @@ import KWWKAI
+@@ -4,7 +4,19 @@ import KWWKAI
  /// SDK-safe default shell for command execution. CLI entry points may override
  /// this with the user's configured shell after explicitly opting into CLI
  /// ambient behavior.
 +#if os(iOS)
-+/// Probed rather than hardcoded: a rootless bootstrap installs its shell under
-+/// /var/jb and leaves /bin/sh absent, while roothide's programs resolve
-+/// unprefixed paths inside the jbroot they picked this boot. The last entry is
-+/// the unreachable-but-honest default when no bootstrap answers.
++/// The launcher exports physical bootstrap directories in PATH. Swift does
++/// not share a RootHide shell's virtual filesystem view. Retain fixed probes
++/// for direct invocation on other bootstrap layouts.
 +public let kwwkDefaultShellPath: String = {
-+    let candidates = ["/var/jb/bin/sh", "/bin/sh", "/var/jb/usr/bin/sh", "/usr/bin/sh"]
++    let pathShells = (ProcessInfo.processInfo.environment["PATH"] ?? "")
++        .split(separator: ":").filter { $0.hasPrefix("/") }.map { "\($0)/sh" }
++    let candidates = pathShells + ["/var/jb/bin/sh", "/bin/sh", "/var/jb/usr/bin/sh", "/usr/bin/sh"]
 +    return candidates.first { FileManager.default.isExecutableFile(atPath: $0) } ?? "/bin/sh"
 +}()
 +#else
