@@ -63,6 +63,16 @@ build_flags=(
     --triple "$triple"
     -Xswiftc -sdk -Xswiftc "$sdk_path"
     -Xcc -isysroot -Xcc "$sdk_path"
+    -Xswiftc -file-prefix-map -Xswiftc "$src_dir=/src"
+    -Xswiftc -file-prefix-map -Xswiftc "$scratch_dir=/build"
+    -Xswiftc -debug-prefix-map -Xswiftc "$src_dir=/src"
+    -Xswiftc -debug-prefix-map -Xswiftc "$scratch_dir=/build"
+    -Xcc "-ffile-prefix-map=$src_dir=/src"
+    -Xcc "-ffile-prefix-map=$scratch_dir=/build"
+    -Xcc "-fdebug-prefix-map=$src_dir=/src"
+    -Xcc "-fdebug-prefix-map=$scratch_dir=/build"
+    -Xcc "-fmacro-prefix-map=$src_dir=/src"
+    -Xcc "-fmacro-prefix-map=$scratch_dir=/build"
     -Xswiftc -Xclang-linker -Xswiftc -isysroot
     -Xswiftc -Xclang-linker -Xswiftc "$sdk_path"
     -Xlinker -syslibroot -Xlinker "$sdk_path"
@@ -108,6 +118,13 @@ architectures="$(lipo -archs "$executable")"
     exit 65
 }
 
+for private_path in "$repository_root" "$src_dir" "$scratch_dir"; do
+    if strings "$executable" | grep -F "$private_path" >/dev/null; then
+        echo "error: $executable embeds private build path: $private_path" >&2
+        exit 65
+    fi
+done
+
 # Every absolute dependency has to be a path a stock device provides out of the
 # dyld shared cache. A macOS-only framework here would mean the link found the
 # wrong sysroot despite the checks above.
@@ -122,13 +139,12 @@ while read -r dependency; do
     esac
 done < <(otool -L "$executable" | tail -n +2 | awk '{print $1}')
 
-# SwiftPM names the bundle after the *package* and the target that owns the
-# resources, so it stays kwwk_KWWKAI.bundle however the program is named on
-# device — Bundle.module looks it up beside the running executable, by that
-# name, not by the executable's. Without it there is no model catalog and the
-# CLI cannot resolve a single provider.
-bundle="$bin_dir/${KWWK_PRODUCT}_KWWKAI.bundle"
-[[ -d "$bundle" ]] || { echo "error: build produced no resource bundle at $bundle" >&2; exit 65; }
+# The iOS patch makes the catalog loader resolve this sidecar beside the
+# running executable. Copy it from the pinned source instead of using SwiftPM's
+# generated resource accessor, whose release fallback embeds the build
+# machine's absolute scratch path in the executable.
+bundle="$src_dir/Sources/KWWKAI/Resources"
+[[ -d "$bundle" ]] || { echo "error: source tree has no resource directory at $bundle" >&2; exit 65; }
 for resource in models.json cursor-models.json; do
     [[ -f "$bundle/$resource" ]] || {
         echo "error: resource bundle is missing $resource" >&2
@@ -140,9 +156,9 @@ payload="$scratch_dir/payload"
 rm -rf -- "$payload"
 mkdir -p "$payload"
 # The program is named here, once, so packaging stays a straight copy. The
-# bundle keeps its SwiftPM name because that is what the lookup asks for.
+# sidecar keeps its established name because that is what the lookup asks for.
 /usr/bin/ditto "$executable" "$payload/$KK_PROGRAM"
-/usr/bin/ditto "$bundle" "$payload/$(basename "$bundle")"
+/usr/bin/ditto "$bundle" "$payload/${KWWK_PRODUCT}_KWWKAI.bundle"
 
 # Swift back-deployment libraries. Targeting an OS older than the one whose
 # runtime carries a given stdlib type makes the compiler autolink a shim for it

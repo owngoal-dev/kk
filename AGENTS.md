@@ -54,7 +54,7 @@ Configuration/version.txt    package version
 patches/NNNN-*.patch         applied in sorted order to a pristine checkout
 Packaging/DEBIAN/control     control template (@PLACEHOLDER@ substituted)
 Packaging/kk.entitlements    what the signed binary carries, and why
-Packaging/kk.launcher.sh     /usr/bin/kk → the real binary in libexec
+Packaging/kk.launcher.c      Mach-O /usr/bin/kk → the real binary in libexec
 Scripts/prepare-source.sh    fetch + patch (idempotent, stamped)
 Scripts/build-ios.sh         cross-compile, verify, assemble the payload
 Scripts/package-deb.sh       stage + ldid + dpkg-deb + verify
@@ -127,11 +127,12 @@ the build is not merely well-formed.
 - **`NSLocking.withLock` is fine** — `@_alwaysEmitIntoClient` and
   `@available(iOS 8.0)`, so it back-deploys. There are 30-plus call sites; do
   not "fix" them.
-- **`/usr/bin/kk` is a launcher, not a symlink.** SwiftPM's `Bundle.module`
+- **`/usr/bin/kk` is a launcher, not a symlink.** The catalog loader
   looks for `kwwk_KWWKAI.bundle` beside the *running* executable, so a symlink
   from `/usr/bin` sends that lookup to `/usr/bin` and the CLI starts with no
-  model catalog. The bundle keeps its SwiftPM name (derived from the *package*,
-  not the product) however the program is renamed.
+  model catalog. Packaging copies the two source catalogs into the sidecar
+  directory itself; SwiftPM resource generation is disabled because its
+  generated release accessor embeds the absolute build directory.
 
 ## The OwnGoalPackages contract
 
@@ -159,10 +160,14 @@ and verify the extracted signature after packaging; a correct package layout
 alone does not establish access to RootHide's app-container installation path.
 Source: https://github.com/roothide/Developer/blob/main/README.md
 
-For payloads that do not use vroot, the launcher exports physical bootstrap
-PATH, SHELL and default CA/browser paths. Preserve explicit CA/browser settings
-and already physical or custom SHELL paths. Host launcher tests simulate the
-path boundary and verify argv/exit status; they do not prove that iOS loads the
-binary. Test the installed package from both zsh and fish on a RootHide device.
+For payloads that do not use vroot, the Mach-O launcher asks RootHide's
+`/usr/lib/libroot.dylib` for the physical bootstrap root, then exports physical
+PATH, SHELL and default CA/browser paths. The rootless build compiles in
+`/var/jb` and does not load libroot. Preserve explicit CA/browser settings and
+already physical or custom SHELL paths. `execv` is intentional in this tiny,
+single-threaded launcher: replacing it with a shell script breaks direct
+execution from fish because the kernel cannot resolve RootHide's `/bin/sh`
+shebang. Both launcher and payload are separately signed. Test the installed
+package from sh, zsh and fish on a RootHide device.
 Do not add vroot to a payload while retaining a launcher that exports physical
 paths: the filesystem view must remain consistent across the boundary.

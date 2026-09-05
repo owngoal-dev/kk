@@ -1,0 +1,58 @@
+diff --git a/Package.swift b/Package.swift
+--- a/Package.swift
++++ b/Package.swift
+@@ -54,8 +54,8 @@ let package = Package(
+                 .product(name: "WebP", package: "libwebp"),
+                 .product(name: "libwebp", package: "libwebp"),
+             ],
+             path: "Sources/KWWKAI",
+-            resources: [.process("Resources")]
++            exclude: ["Resources"]
+         ),
+         .target(
+             name: "KWWKAgent",
+diff --git a/Sources/KWWKAI/ModelsCatalog.swift b/Sources/KWWKAI/ModelsCatalog.swift
+--- a/Sources/KWWKAI/ModelsCatalog.swift
++++ b/Sources/KWWKAI/ModelsCatalog.swift
+@@ -31,12 +31,19 @@ public enum ModelsCatalog {
+ 
+     // MARK: - Loader
+ 
++    private static func resourceURL(name: String) -> URL? {
++        let url = Bundle.main.bundleURL
++            .appendingPathComponent("kwwk_KWWKAI.bundle", isDirectory: true)
++            .appendingPathComponent(name, isDirectory: false)
++        return FileManager.default.fileExists(atPath: url.path) ? url : nil
++    }
++
+     private static func loadAll() -> [String: [String: Model]] {
+         // The catalog is a bundled build resource; a missing or unparseable
+         // models.json is a broken build, not a runtime condition to paper
+         // over with an empty catalog (which would silently break every model
+         // lookup). Fail loudly so it's caught at first use.
+-        guard let url = Bundle.module.url(forResource: "models", withExtension: "json") else {
++        guard let url = resourceURL(name: "models.json") else {
+             fatalError("ModelsCatalog: bundled resource models.json is missing from the build")
+         }
+         let data: Data
+@@ -78,7 +86,7 @@ public enum ModelsCatalog {
+     ///
+     ///   swift run kwwk-generate-cursor-models
+     private static func loadCursorCatalog() -> [String: Model] {
+-        guard let url = Bundle.module.url(forResource: "cursor-models", withExtension: "json") else {
++        guard let url = resourceURL(name: "cursor-models.json") else {
+             fatalError("ModelsCatalog: bundled resource cursor-models.json is missing from the build")
+         }
+         guard let data = try? Data(contentsOf: url),
+diff --git a/Sources/kwwk/main.swift b/Sources/kwwk/main.swift
+--- a/Sources/kwwk/main.swift
++++ b/Sources/kwwk/main.swift
+@@ -117,7 +117,7 @@ enum KWWKCommand {
+         """)
+     }
+ 
+-    /// Exercise both SwiftPM resource catalogs through `Bundle.module` without
++    /// Exercise both installed resource catalogs without
+     /// resolving credentials or constructing a provider. Homebrew runs this
+     /// against the installed executable so a bottle missing its sidecar
+     /// `kwwk_KWWKAI.bundle` fails before publication.
