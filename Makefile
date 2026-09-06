@@ -146,7 +146,7 @@ deb-rootless:
 
 debs: deb-roothide deb-rootless checksums
 
-# The digest list is what OwnGoalPackages verifies a downloaded asset against,
+# The digest list is what owngoal-packages verifies a downloaded asset against,
 # so the names in it have to be the bare asset names the release publishes.
 checksums:
 	@cd "$(PKG_DIR)" && shasum -a 256 "$(PACKAGE_ID)_$(PACKAGE_VERSION)_iphoneos-arm64.deb" "$(PACKAGE_ID)_$(PACKAGE_VERSION)_iphoneos-arm64e.deb" | tee SHA256SUMS

@@ -134,9 +134,9 @@ the build is not merely well-formed.
   directory itself; SwiftPM resource generation is disabled because its
   generated release accessor embeds the absolute build directory.
 
-## The OwnGoalPackages contract
+## The owngoal-packages contract
 
-[OwnGoalPackages](https://github.com/owngoal-dev/OwnGoalPackages) builds the
+[owngoal-packages](https://github.com/owngoal-dev/owngoal-packages) builds the
 apt repository by scanning this repo's releases, so the release shape is an
 interface:
 

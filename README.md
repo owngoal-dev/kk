@@ -20,7 +20,7 @@ $ kk
 
 ## Install
 
-From the [OwnGoal Studio repository](https://github.com/owngoal-dev/OwnGoalPackages),
+From the [OwnGoal Studio repository](https://github.com/owngoal-dev/owngoal-packages),
 or grab the `.deb` for your bootstrap from
 [Releases](../../releases) and `dpkg -i` it:
 
