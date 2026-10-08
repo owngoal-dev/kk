@@ -1,8 +1,8 @@
 # kk — Agent Notes
 
 [kwwk](https://github.com/EYHN/kwwk) — a Swift-native coding-agent CLI — built
-for jailbroken iOS 15+ and installed as `kk`, for both roothide and rootless
-bootstraps.
+for iOS 15+ on custom firmware and installed as `kk`, for both roothide and
+rootless bootstraps.
 
 This repository holds **no application source**. It fetches kwwk at a pinned
 commit, applies `patches/`, cross-compiles, and packages. Everything runs
@@ -77,7 +77,7 @@ layout.
   smoke-test it. Over USB, forward sshd first: `iproxy 4422:2222 &`
 
 There is no simulator or host test loop: the product is a terminal program for a
-jailbroken device, and the only meaningful verification is
+device running custom firmware, and the only meaningful verification is
 `kk --self-test` on one. That check launches the binary, loads the resource
 bundle, and parses both model catalogs — it is the cheapest thing that proves
 the build is not merely well-formed.
@@ -110,10 +110,10 @@ the build is not merely well-formed.
   `usr/lib/swift-*/iphoneos/` and thins it to arm64.
 - **Test by installing, never by copying.** A binary copied to a user-writable
   path (`/var/mobile/...`) runs with its entitlements ignored, because the
-  jailbreak's trustcache never saw it, and the first symptom is a *dylib* error:
-  `file system sandbox blocked mmap()` of the shim. `dpkg -i` into the bootstrap
-  is what registers the signature. `install-device.sh` exists so this is not
-  re-learned.
+  custom firmware's trustcache never saw it, and the first symptom is a *dylib*
+  error: `file system sandbox blocked mmap()` of the shim. `dpkg -i` into the
+  bootstrap is what registers the signature. `install-device.sh` exists so this
+  is not re-learned.
 - **iOS ships no shell.** Under rootless `/bin/sh` does not exist at all
   (`/var/jb/bin/sh` → dash). Patch 0003 probes instead of guessing.
 - **iOS Foundation has no `Process` and no `homeDirectoryForCurrentUser`**

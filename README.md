@@ -1,8 +1,8 @@
 # kk
 
 [kwwk](https://github.com/EYHN/kwwk) — a Swift-native coding-agent CLI — built
-for jailbroken iOS and installed as `kk`. One arm64 build, packaged for both
-**roothide** and **rootless** bootstraps.
+for iOS on custom firmware and installed as `kk`. One arm64 build, packaged for
+both **roothide** and **rootless** bootstraps.
 
 ```
 $ kk
@@ -49,11 +49,11 @@ The patches are the iOS port, and each is small enough to rebase by hand:
 
 | patch  | why                                                                   |
 | ------ | --------------------------------------------------------------------- |
-| `0001` | The TUI is gated to macOS/Linux; iOS gets a real TTY from a jailbreak shell |
+| `0001` | The TUI is gated to macOS/Linux; iOS on custom firmware gets a real TTY from its shell |
 | `0002` | iOS Foundation has no `Process` — `posix_spawn` and `uiopen` instead   |
 | `0003` | iOS ships no shell; a rootless bootstrap has no `/bin/sh` at all       |
 | `0004` | `homeDirectoryForCurrentUser` is unavailable on iOS                    |
-| `0005` | Lower the deployment target so the floor is the jailbreaks', not iOS 17 |
+| `0005` | Lower the deployment target from iOS 17 to the lowest iOS custom firmware supports |
 | `0006` | One `split(separator:)` call needs the iOS 16+ `Collection` overload   |
 
 ## Build it yourself

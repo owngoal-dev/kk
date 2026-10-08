@@ -1,4 +1,4 @@
-[kwwk](https://github.com/EYHN/kwwk) — a Swift-native coding-agent CLI — built for jailbroken iOS and installed as `kk`.
+[kwwk](https://github.com/EYHN/kwwk) — a Swift-native coding-agent CLI — built for iOS on custom firmware and installed as `kk`.
 
 ## Which one do I download?
 
@@ -21,7 +21,7 @@ It is installed as `kwwk` too, which is the name it uses in its own help text.
 
 ## About this build
 
-Upstream [`EYHN/kwwk@@UPSTREAM_SHORT@`](https://github.com/EYHN/kwwk/commit/@UPSTREAM_REF@), plus the patches that port it to iOS — the TUI is gated to macOS/Linux upstream, iOS Foundation ships no `Process`, a rootless bootstrap has no `/bin/sh` at all, and the deployment target has to come down to reach the jailbreaks' floor. See [`patches/`](https://github.com/owngoal-dev/kk/tree/@TAG@/patches).
+Upstream [`EYHN/kwwk@@UPSTREAM_SHORT@`](https://github.com/EYHN/kwwk/commit/@UPSTREAM_REF@), plus the patches that port it to iOS — the TUI is gated to macOS/Linux upstream, iOS Foundation ships no `Process`, a rootless bootstrap has no `/bin/sh` at all, and the deployment target has to come down to the lowest iOS version custom firmware supports. See [`patches/`](https://github.com/owngoal-dev/kk/tree/@TAG@/patches).
 
 Verify your download against `SHA256SUMS`.
 

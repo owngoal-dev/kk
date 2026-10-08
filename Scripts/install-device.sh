@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Install one .deb onto a jailbroken device over SSH and smoke-test it.
+# Install one .deb onto a device running custom firmware over SSH and smoke-test it.
 #
 # Development convenience, not part of the release pipeline: CI has no device.
 # It is a script rather than a paragraph in the README because the checks are
