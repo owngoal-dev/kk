@@ -1,4 +1,4 @@
-# kk — kwwk built for iOS on custom firmware.
+# kk — kwwk built for jailbroken iOS.
 #
 # Every step is a script under Scripts/ so the GitHub Actions workflow and a
 # local checkout run the same code. This Makefile only wires them together and

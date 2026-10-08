@@ -3,8 +3,8 @@
 <!--
   kk is a command-line agent: it is launched from a shell, it spawns shells of
   its own for the Bash tool, and it reads and writes the tree it was pointed at.
-  Three entitlements are what make that work on a device running custom
-  firmware, and each is here for a reason worth keeping:
+  Three entitlements are what make that work on a jailbroken device, and each is
+  here for a reason worth keeping:
 
   platform-application
       Marks the binary as a platform binary. An ad-hoc signed executable
