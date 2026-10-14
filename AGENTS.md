@@ -17,6 +17,12 @@ through `Scripts/`, so CI and a local checkout execute the same code.
 - **`KWWK_REF` is a full commit sha**, not a branch. `patches/` is
   context-sensitive; a moving branch turns "the build broke" into "which of the
   last twenty upstream commits broke it". Bump with `make bump-upstream REF=…`.
+- **kk tracks upstream releases.** `.github/workflows/track-upstream.yml`
+  checks EYHN/kwwk's latest release daily; when it is newer than
+  `version.txt`, it repins `KWWK_REF` to that tag's commit, sets the version
+  to the same `X.Y.Z`, builds, pushes the commit and tag, and dispatches the
+  release. If the patch set no longer applies or the build fails it opens an
+  issue instead — fix the patch, then rerun the workflow.
 - **One arm64 binary backs both packages.** arm64 runs on every arm64e device
   and the reverse is not true. The two `.deb` architectures name a *bootstrap
   layout*, not a CPU: `iphoneos-arm64` is rootless, `iphoneos-arm64e` is
@@ -92,9 +98,10 @@ the build is not merely well-formed.
   Removing the flag needs a real Swift SDK bundle for iOS, not a flag tweak.
 - **`--triple`'s version component is advisory.** SwiftPM raises every target to
   the *package's* deployment target, so `arm64-apple-ios15.0` silently produced
-  `minos 17.0` while `Package.swift` said `.iOS(.v17)`. That is what patch 0005
-  is for, and why `build-ios.sh` reads `minos` back off the Mach-O instead of
-  trusting the flag.
+  `minos 17.0` while `Package.swift` said `.iOS(.v17)`. Upstream says
+  `.iOS(.v15)` since EYHN/kwwk#196, so KK_MIN_IOS cannot go lower than that,
+  and `build-ios.sh` reads `minos` back off the Mach-O instead of trusting the
+  flag.
 - **Four separate sysroot flags, one per stage.** Frontend (`-Xswiftc -sdk`), C
   (`-Xcc -isysroot`), *link driver* (`-Xswiftc -Xclang-linker -Xswiftc
   -isysroot`), and ld (`-Xlinker -syslibroot`). Omitting the link-driver one
@@ -115,15 +122,17 @@ the build is not merely well-formed.
   bootstrap is what registers the signature. `install-device.sh` exists so this
   is not re-learned.
 - **iOS ships no shell.** Under rootless `/bin/sh` does not exist at all
-  (`/var/jb/bin/sh` → dash). Patch 0003 probes instead of guessing.
+  (`/var/jb/bin/sh` → dash). Upstream's `kwwkDefaultShellPath` probes on iOS
+  instead of guessing.
 - **iOS Foundation has no `Process` and no `homeDirectoryForCurrentUser`**
-  (patches 0002, 0004). `posix_spawn` replaces the first; `NSHomeDirectory()`
-  replaces the second, which is what upstream already does elsewhere. The
+  — upstream handles both under `#if os(iOS)` now. `posix_spawn` replaces the
+  first; `NSHomeDirectory()` replaces the second. The
   browser handoff for `/login` goes through uikittools' `uiopen` — hence the
   `Depends: uikittools`.
 - **`split(separator:)` with a multi-character separator is iOS 16+** (the
-  `Collection` overload). A single-character literal infers `Character` and is
-  ancient, so only the one multi-character call site needed patch 0006.
+  `Collection` overload), as are `Regex` literals. Upstream's `build-ios` CI
+  job now catches either before a release, so a repin that fails on them is an
+  upstream bug, not something to patch here.
 - **`NSLocking.withLock` is fine** — `@_alwaysEmitIntoClient` and
   `@available(iOS 8.0)`, so it back-deploys. There are 30-plus call sites; do
   not "fix" them.

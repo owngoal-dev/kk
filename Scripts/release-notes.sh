@@ -35,6 +35,7 @@ rendered="$(
     sed \
         -e "s|@PACKAGE_ID@|$package_id|g" \
         -e "s|@VERSION@|$version|g" \
+        -e "s|@UPSTREAM_VERSION@|${version%%-*}|g" \
         -e "s|@TAG@|$tag|g" \
         -e "s|@UPSTREAM_REF@|$KWWK_REF|g" \
         -e "s|@UPSTREAM_SHORT@|${KWWK_REF:0:7}|g" \

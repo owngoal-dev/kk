@@ -45,16 +45,17 @@ Packaging, not a fork. There is no application source here: the build fetches
 kwwk at a pinned commit, applies the patches in `patches/`, cross-compiles for
 `arm64-apple-ios15.0`, and produces the two packages.
 
-The patches are the iOS port, and each is small enough to rebase by hand:
+The iOS port itself lives upstream: since EYHN/kwwk#196 kwwk targets iOS 15 and
+builds its CLI for iOS (TUI, `posix_spawn` in place of `Process`, the bootstrap
+shell probe, `NSHomeDirectory()`). What is left here is packaging:
 
 | patch  | why                                                                   |
 | ------ | --------------------------------------------------------------------- |
-| `0001` | The TUI is gated to macOS/Linux; iOS on custom firmware gets a real TTY from its shell |
-| `0002` | iOS Foundation has no `Process` — `posix_spawn` and `uiopen` instead   |
-| `0003` | iOS ships no shell; a rootless bootstrap has no `/bin/sh` at all       |
-| `0004` | `homeDirectoryForCurrentUser` is unavailable on iOS                    |
-| `0005` | Lower the deployment target from iOS 17 to the lowest iOS custom firmware supports |
-| `0006` | One `split(separator:)` call needs the iOS 16+ `Collection` overload   |
+| `0001` | Load the model catalogs from the sidecar beside the executable instead of `Bundle.module`, whose release accessor embeds the build machine's path |
+
+`KWWK_REF` follows upstream releases: `.github/workflows/track-upstream.yml`
+checks daily for a new kwwk tag, repins to it, and releases the matching kk
+version when the patch still applies and the build passes.
 
 ## Build it yourself
 

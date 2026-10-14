@@ -46,7 +46,7 @@ triple="$KK_ARCH-apple-ios$KK_MIN_IOS"
 #                     what decides `#if os(iOS)` across the whole graph. Its
 #                     version component is advisory: SwiftPM raises everything
 #                     to the package's own deployment target, which is why
-#                     patches/ lowers Package.swift's .iOS() instead.
+#                     KK_MIN_IOS has to match upstream's .iOS() floor.
 #   -Xswiftc -sdk     the Swift frontend's sysroot.
 #   -Xcc -isysroot    the C sysroot, for BoringSSL / libwebp / libpng / stb.
 #   -Xclang-linker    the *link* driver's sysroot. Without it clang links

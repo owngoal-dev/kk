@@ -21,13 +21,11 @@ It is installed as `kwwk` too, which is the name it uses in its own help text.
 
 ## About this build
 
-Upstream [`EYHN/kwwk@@UPSTREAM_SHORT@`](https://github.com/EYHN/kwwk/commit/@UPSTREAM_REF@), plus the patches that port it to iOS — the TUI is gated to macOS/Linux upstream, iOS Foundation ships no `Process`, a rootless bootstrap has no `/bin/sh` at all, and the deployment target has to come down to the lowest iOS version custom firmware supports. See [`patches/`](https://github.com/owngoal-dev/kk/tree/@TAG@/patches).
+Upstream [kwwk v@UPSTREAM_VERSION@](https://github.com/EYHN/kwwk/releases/tag/v@UPSTREAM_VERSION@) at [`@UPSTREAM_SHORT@`](https://github.com/EYHN/kwwk/commit/@UPSTREAM_REF@), which builds for iOS 15 itself, plus a packaging patch that loads the model catalogs from beside the executable. See [`patches/`](https://github.com/owngoal-dev/kk/tree/@TAG@/patches).
 
 Verify your download against `SHA256SUMS`.
 
 **Full changelog**: https://github.com/owngoal-dev/kk/commits/@TAG@
-
-This packaging revision updates RootHide compatibility checks and signing.
 CLI startup passes bootstrap paths to payloads that use the physical filesystem;
 RootHide virtual-filesystem utilities retain their official import rewriting.
 RootHide device validation is pending; a successful build is not a claim that

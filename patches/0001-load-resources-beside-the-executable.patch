@@ -1,8 +1,8 @@
 diff --git a/Package.swift b/Package.swift
+index 042f774..0e404fb 100644
 --- a/Package.swift
 +++ b/Package.swift
-@@ -54,8 +54,8 @@ let package = Package(
-                 .product(name: "WebP", package: "libwebp"),
+@@ -78,7 +78,7 @@ let package = Package(
                  .product(name: "libwebp", package: "libwebp"),
              ],
              path: "Sources/KWWKAI",
@@ -12,9 +12,10 @@ diff --git a/Package.swift b/Package.swift
          .target(
              name: "KWWKAgent",
 diff --git a/Sources/KWWKAI/ModelsCatalog.swift b/Sources/KWWKAI/ModelsCatalog.swift
+index 23e0b32..1f33d6a 100644
 --- a/Sources/KWWKAI/ModelsCatalog.swift
 +++ b/Sources/KWWKAI/ModelsCatalog.swift
-@@ -31,12 +31,19 @@ public enum ModelsCatalog {
+@@ -33,12 +33,19 @@ public enum ModelsCatalog {
  
      // MARK: - Loader
  
@@ -35,24 +36,25 @@ diff --git a/Sources/KWWKAI/ModelsCatalog.swift b/Sources/KWWKAI/ModelsCatalog.s
              fatalError("ModelsCatalog: bundled resource models.json is missing from the build")
          }
          let data: Data
-@@ -78,7 +86,7 @@ public enum ModelsCatalog {
-     ///
+@@ -102,7 +109,7 @@ public enum ModelsCatalog {
      ///   swift run kwwk-generate-cursor-models
-     private static func loadCursorCatalog() -> [String: Model] {
--        guard let url = Bundle.module.url(forResource: "cursor-models", withExtension: "json") else {
-+        guard let url = resourceURL(name: "cursor-models.json") else {
-             fatalError("ModelsCatalog: bundled resource cursor-models.json is missing from the build")
+     ///   swift run kwwk-generate-devin-models
+     private static func loadBundledArray(_ name: String) -> [String: Model] {
+-        guard let url = Bundle.module.url(forResource: name, withExtension: "json") else {
++        guard let url = resourceURL(name: "\(name).json") else {
+             fatalError("ModelsCatalog: bundled resource \(name).json is missing from the build")
          }
          guard let data = try? Data(contentsOf: url),
 diff --git a/Sources/kwwk/main.swift b/Sources/kwwk/main.swift
+index 6ee768f..a979813 100644
 --- a/Sources/kwwk/main.swift
 +++ b/Sources/kwwk/main.swift
-@@ -117,7 +117,7 @@ enum KWWKCommand {
+@@ -138,7 +138,7 @@ struct KwwkCLI {
          """)
      }
  
--    /// Exercise both SwiftPM resource catalogs through `Bundle.module` without
-+    /// Exercise both installed resource catalogs without
+-    /// Exercise the SwiftPM resource catalogs through `Bundle.module` without
++    /// Exercise the installed resource catalogs without
      /// resolving credentials or constructing a provider. Homebrew runs this
      /// against the installed executable so a bottle missing its sidecar
      /// `kwwk_KWWKAI.bundle` fails before publication.
