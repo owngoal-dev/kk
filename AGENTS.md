@@ -169,10 +169,15 @@ and verify the extracted signature after packaging; a correct package layout
 alone does not establish access to RootHide's app-container installation path.
 Source: https://github.com/roothide/Developer/blob/main/README.md
 
-For payloads that do not use vroot, the Mach-O launcher asks RootHide's
-`/usr/lib/libroot.dylib` for the physical bootstrap root, then exports physical
-PATH, SHELL and default CA/browser paths. The rootless build compiles in
-`/var/jb` and does not load libroot. Preserve explicit CA/browser settings and
+For payloads that do not use vroot, the Mach-O launcher finds the physical
+bootstrap root the way icli does — libroot, then libroothide's `jbroot("/")`,
+then the `.jbroot` link beside the launcher, then the one checksummed
+`.jbroot-<hex>` under `/private/var/containers/Bundle/Application` — and
+exports physical PATH, SHELL and default CA/browser paths. Do not narrow this
+back to libroot: a RootHide bootstrap ships libroothide and no libroot, and the
+launcher then refused to start at all ("cannot resolve the jailbreak bootstrap
+with libroot", 0.1.44-5 through 0.1.92). The rootless build compiles in
+`/var/jb` and resolves nothing. Preserve explicit CA/browser settings and
 already physical or custom SHELL paths. `execv` is intentional in this tiny,
 single-threaded launcher: replacing it with a shell script breaks direct
 execution from fish because the kernel cannot resolve RootHide's `/bin/sh`
