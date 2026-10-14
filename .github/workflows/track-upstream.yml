@@ -1,0 +1,105 @@
+# Follow EYHN/kwwk's releases. Once a day, compare upstream's latest release
+# with Configuration/version.txt; when upstream is ahead, repin KWWK_REF to the
+# commit that release tagged, set the same X.Y.Z, prove the patch set still
+# applies and the iOS build passes, then push the commit and the vX.Y.Z tag and
+# dispatch release.yml for it.
+#
+# The release is dispatched rather than left to the tag push: a tag pushed with
+# GITHUB_TOKEN does not trigger other workflows. A repin that fails opens (or
+# comments on) an issue and pushes nothing, so a broken upstream never reaches
+# owngoal-packages.
+
+name: Track upstream
+
+on:
+  schedule:
+    - cron: "23 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+  issues: write
+
+concurrency:
+  group: track-upstream
+  cancel-in-progress: false
+
+jobs:
+  track:
+    runs-on: macos-26
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out kk
+        uses: actions/checkout@v4
+
+      - name: Compare with upstream's latest release
+        id: upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$(gh api repos/EYHN/kwwk/releases/latest --jq .tag_name)"
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "error: unexpected upstream tag '$tag'" >&2; exit 65; }
+          upstream="${tag#v}"
+          current="$(tr -d '[:space:]' <Configuration/version.txt)"
+          current="${current%%-*}"
+          newest="$(printf '%s\n%s\n' "$upstream" "$current" | sort -V | tail -n1)"
+          if [[ "$upstream" == "$current" || "$newest" != "$upstream" ]] || git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            echo "kk $current is current with upstream $upstream"
+            echo "behind=false" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # The commits endpoint peels lightweight and annotated tags alike.
+          sha="$(gh api "repos/EYHN/kwwk/commits/$tag" --jq .sha)"
+          echo "upstream $tag ($sha) is ahead of kk $current"
+          {
+            echo "behind=true"
+            echo "tag=$tag"
+            echo "version=$upstream"
+            echo "sha=$sha"
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Select newest Xcode
+        if: steps.upstream.outputs.behind == 'true'
+        run: |
+          latest="$(ls -d /Applications/Xcode*.app | sort -V | tail -n1)"
+          sudo xcode-select -s "$latest/Contents/Developer"
+          xcodebuild -version
+
+      - name: Repin and build
+        if: steps.upstream.outputs.behind == 'true'
+        run: |
+          make set-version VERSION="${{ steps.upstream.outputs.version }}"
+          make check
+          make bump-upstream REF="${{ steps.upstream.outputs.sha }}"
+
+      - name: Push the repin and its tag
+        if: steps.upstream.outputs.behind == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.upstream.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Configuration/upstream.env Configuration/version.txt
+          git commit -m "Track kwwk $TAG"
+          git tag "$TAG"
+          git push origin HEAD:main "refs/tags/$TAG"
+          gh workflow run release.yml --ref "$TAG"
+
+      - name: Report a failed repin
+        if: failure() && steps.upstream.outputs.behind == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.upstream.outputs.tag }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Tracking kwwk $TAG failed"
+          body="Repinning to EYHN/kwwk $TAG (${{ steps.upstream.outputs.sha }}) failed: $RUN_URL"
+          existing="$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[0].number')"
+          if [[ -n "$existing" ]]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi
