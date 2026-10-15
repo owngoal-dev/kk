@@ -45,16 +45,3 @@ index 23e0b32..1f33d6a 100644
              fatalError("ModelsCatalog: bundled resource \(name).json is missing from the build")
          }
          guard let data = try? Data(contentsOf: url),
-diff --git a/Sources/kwwk/main.swift b/Sources/kwwk/main.swift
-index 6ee768f..a979813 100644
---- a/Sources/kwwk/main.swift
-+++ b/Sources/kwwk/main.swift
-@@ -138,7 +138,7 @@ struct KwwkCLI {
-         """)
-     }
- 
--    /// Exercise the SwiftPM resource catalogs through `Bundle.module` without
-+    /// Exercise the installed resource catalogs without
-     /// resolving credentials or constructing a provider. Homebrew runs this
-     /// against the installed executable so a bottle missing its sidecar
-     /// `kwwk_KWWKAI.bundle` fails before publication.
